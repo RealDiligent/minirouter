@@ -18,6 +18,16 @@ protocol. **Newest entries at the top.** Tag each entry with one or more of:
 
 ---
 
+## 2026-07-20 — Remote helper scripts defaulted to GPU 0 instead of allocated GPU 5  #mistake #decision
+**Context:** issue #33 — running `scripts/setup_remote.sh` / `scripts/run_remote.sh` without
+`TRINITY_GPU_INDEX` set.
+**Expected:** remote workflows use GPU 5, matching `DEFAULT_TRINITY_GPU_INDEX` and `secrets.env.example`.
+**Actual:** shell fallbacks used `${TRINITY_GPU_INDEX:-0}`, pinning jobs to GPU 0 on shared boxes.
+**Root cause:** scripts were written before the project standardized on GPU 5 as the allocated device.
+**Fix / decision:** change the shell fallbacks to `:-5` in `setup_remote.sh`, `run_remote.sh`, and
+`remote_env.sh`; add a regression test that `setup_remote.sh` logs GPU 5 when unset.
+**Follow-up:** none.
+
 ## 2026-07-12 — code grader: add resource limits on top of the HOME/secrets fix  #security #decision
 **Context:** issue #71 — the code grader (`run_pass_at_1`) runs untrusted miner/LLM candidate code. The core secret-leak fix (isolated throwaway HOME/cwd, scrubbed env, `python -I`) already landed on main.
 **Finding:** main's sandbox closes the HOME/secrets exfiltration vector but has **no resource limits** — an untrusted candidate can still exhaust host memory or fork-bomb the eval box within its wall-clock timeout (verified: a 4 GiB `bytearray` allocation runs to completion and "passes" on main).
