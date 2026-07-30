@@ -33,6 +33,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           path: pr
           persist-credentials: false
+          allow-unsafe-pr-checkout: true
 
       - name: Label PR and classify submission
         id: classify
@@ -225,6 +226,7 @@ jobs:
           ref: ${{ steps.prmeta.outputs.head_sha }}
           path: pr
           persist-credentials: false
+          allow-unsafe-pr-checkout: true
 
       - name: Checkout validator scripts
         uses: actions/checkout@v4
