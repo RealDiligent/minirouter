@@ -62,7 +62,11 @@ def _add_column_if_missing(conn, table: str, column: str, ddl_type: str) -> None
 
 
 def _drop_not_null_if_needed(conn, table: str, column: str) -> None:
-    if not _column_nullable(conn, table, column):
+    # Missing columns must be skipped: on a fresh DB the legacy submission
+    # fields are ORM @property accessors, not real columns (issue #120).
+    # `_column_nullable` returns False when the column is absent, so without
+    # an existence check we would still issue ALTER COLUMN and crash.
+    if _column_exists(conn, table, column) and not _column_nullable(conn, table, column):
         conn.exec_driver_sql(f"ALTER TABLE {table} ALTER COLUMN {column} DROP NOT NULL")
 
 
@@ -101,14 +105,17 @@ def ensure_schema(engine) -> None:
         _drop_not_null_if_needed(conn, "submissions", "artifact_sha256")
         _drop_not_null_if_needed(conn, "submissions", "checkpoint_path")
         _drop_not_null_if_needed(conn, "submissions", "benchmark")
-        conn.exec_driver_sql(
-            "UPDATE submissions SET miner_id = COALESCE(miner_id, team_name) "
-            "WHERE miner_id IS NULL AND team_name IS NOT NULL"
-        )
-        conn.exec_driver_sql(
-            "UPDATE submissions SET benchmark_names_json = COALESCE(benchmark_names_json, json_build_array(benchmark)) "
-            "WHERE benchmark_names_json IS NULL AND benchmark IS NOT NULL"
-        )
+        # Legacy back-fills reference columns that only exist on pre-property DBs.
+        if _column_exists(conn, "submissions", "team_name"):
+            conn.exec_driver_sql(
+                "UPDATE submissions SET miner_id = COALESCE(miner_id, team_name) "
+                "WHERE miner_id IS NULL AND team_name IS NOT NULL"
+            )
+        if _column_exists(conn, "submissions", "benchmark"):
+            conn.exec_driver_sql(
+                "UPDATE submissions SET benchmark_names_json = COALESCE(benchmark_names_json, json_build_array(benchmark)) "
+                "WHERE benchmark_names_json IS NULL AND benchmark IS NOT NULL"
+            )
         conn.exec_driver_sql(
             "UPDATE competition_runtime_config "
             "SET default_eval_execution_mode = COALESCE(NULLIF(default_eval_execution_mode, ''), 'remote_gpu')"

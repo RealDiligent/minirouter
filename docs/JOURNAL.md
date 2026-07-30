@@ -18,6 +18,16 @@ protocol. **Newest entries at the top.** Tag each entry with one or more of:
 
 ---
 
+## 2026-07-30 — ensure_schema still crashed on fresh DBs after lock-timeout helpers  #mistake #repro #decision
+**Context:** issue #120; main added `_drop_not_null_if_needed` / `_column_nullable` for lock avoidance.
+**Expected:** fresh `create_all` + `ensure_schema` succeeds.
+**Actual:** `_drop_not_null_if_needed` treated a missing column as "not nullable" and still issued
+`ALTER COLUMN … DROP NOT NULL`; legacy `UPDATE … team_name` / `benchmark` also ran unconditionally.
+**Root cause:** existence was not checked before ALTER/UPDATE of legacy columns.
+**Fix / decision:** require `_column_exists` before DROP NOT NULL; gate legacy back-fills the same way.
+Added `validator/tests/test_ensure_schema.py`.
+**Follow-up:** none.
+
 ## 2026-07-12 — code grader: add resource limits on top of the HOME/secrets fix  #security #decision
 **Context:** issue #71 — the code grader (`run_pass_at_1`) runs untrusted miner/LLM candidate code. The core secret-leak fix (isolated throwaway HOME/cwd, scrubbed env, `python -I`) already landed on main.
 **Finding:** main's sandbox closes the HOME/secrets exfiltration vector but has **no resource limits** — an untrusted candidate can still exhaust host memory or fork-bomb the eval box within its wall-clock timeout (verified: a 4 GiB `bytearray` allocation runs to completion and "passes" on main).
