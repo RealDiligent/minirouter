@@ -117,10 +117,13 @@ def test_github_webhook_enqueues_submission_job(validator_engine) -> None:
 
 
 def test_should_promote_submission_requires_threshold_and_king_score() -> None:
-    assert should_promote_submission(0.81, 0.8, 0.8) is True
-    assert should_promote_submission(0.8, 0.8, 0.8) is False
-    assert should_promote_submission(0.95, 0.8, 0.96) is False
-    assert should_promote_submission(None, 0.8, 0.8) is False
+    assert should_promote_submission(0.81, 0.8) is True
+    assert should_promote_submission(0.8, 0.8) is False
+    assert should_promote_submission(0.95, 0.96) is False
+    assert should_promote_submission(None, 0.8) is False
+    assert should_promote_submission(0.5, 0.8, is_first=True) is True
+    assert should_promote_submission(0.0, 0.8, is_first=True) is True
+    assert should_promote_submission(None, 0.8, is_first=True) is False
 
 def test_github_webhook_ignores_non_submission_pr(validator_engine) -> None:
     settings = Settings(

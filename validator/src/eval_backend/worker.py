@@ -239,10 +239,11 @@ def process_once(session_factory, settings: Settings) -> int:
             job.updated_at = result.run.finished_at or now
             session.commit()
             if submission.source == "github_pr":
+                is_first = runtime.king_score == runtime_settings.github_review_score_threshold
                 accepted = should_promote_submission(
                     result.run.score,
-                    runtime_settings.github_review_score_threshold,
                     runtime.king_score,
+                    is_first=is_first,
                 )
                 try:
                     import asyncio

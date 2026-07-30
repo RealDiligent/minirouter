@@ -227,11 +227,14 @@ def build_submission_summary_markdown(
     return "\n".join(parts)
 
 
-def should_promote_submission(score: float | None, threshold: float, king_score: float | None) -> bool:
+def should_promote_submission(score: float | None, king_score: float | None, *, is_first: bool = False) -> bool:
     if score is None:
         return False
-    current_king = threshold if king_score is None else king_score
-    return score >= threshold and score > current_king
+    if is_first:
+        return True
+    if king_score is None:
+        return True
+    return score > king_score
 
 
 async def _github_request(
@@ -369,7 +372,6 @@ async def publish_submission_result(
     if accepted is None:
         accepted = should_promote_submission(
             run.score,
-            settings.github_review_score_threshold,
             settings.github_review_score_threshold,
         )
     commit_state = "pending"
